@@ -2,7 +2,6 @@
 import os, json, time, logging, datetime, decimal, requests, schedule
 from actual import Actual
 from actual.queries import get_or_create_account, reconcile_transaction, get_transactions, create_transaction
-from actual.
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 log = logging.getLogger(__name__)
@@ -235,7 +234,7 @@ def run_sync():
                             already_matched.append(t)
                             if t.changed():
                                 pending_map[key] = str(t.id)
-                                 += 1
+                                added += 1
                                 new_txn.append(t)
                                 log.info("Imported pending: %s | %s | %s", date, amount, payee)
                             else:
@@ -290,7 +289,12 @@ def run_sync():
 
                 except Exception as e:
                     log.warning("Skipping transaction: %s | %s", e, txn)
-            actual.run_rules(new_txn)
+
+            try:
+                actual.run_rules(new_txn)
+            except Exception as e:
+                log.error("Error applying Rules. Please check your actual budget rules: " + str(e))
+
             actual.commit()
             log.info("Done: %d added, %d confirmed, %d skipped", added, updated, skipped)
 
