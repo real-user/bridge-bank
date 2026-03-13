@@ -1,46 +1,17 @@
 services:
   bridge-bank:
-    image: python:3.12-slim
+    image: daalves/bridge-bank:latest
     container_name: bridge-bank
     restart: unless-stopped
+    env_file:
+      - .env
     volumes:
       - ./data:/data
-      - ./sync.py:/app/sync.py
-      - ./requirements.txt:/app/requirements.txt
-    working_dir: /app
-    command: >
-      bash -c "apt-get update -qq && apt-get install -y -qq git && git pull && pip install -q -r requirements.txt && python -u sync.py"
-    environment:
-      # --- Actual Budget ---
-      ACTUAL_URL: "http://actual-budget:5006"   # URL of your Actual Budget instance
-      ACTUAL_PASSWORD: "your-actual-password"
-      ACTUAL_SYNC_ID: "your-sync-id"            # Settings > Show advanced settings > Sync ID
-      ACTUAL_ACCOUNT: "Revolut"                 # Name of the account in Actual Budget
 
-      # --- Enable Banking ---
-      EB_APPLICATION_ID: "your-app-id"          # From enablebanking.com dashboard
-
-      # --- Sync settings ---
-      SYNC_INTERVAL_HOURS: "6"
-
-      # --- Payee detection (optional but recommended) ---
-      # Your name as it appears on bank transfers, to correctly identify payees on
-      # incoming transfers and card refunds. Comma-separated if you have multiple variations.
-      # Example: "John Doe,JOHN DOE"
-      ACCOUNT_HOLDER_NAME: ""
-
-      # --- Email notifications (optional) ---
-      # Notifies you when the session is about to expire (every 180 days)
-      NOTIFY_EMAIL: ""
-      SMTP_HOST: ""       # e.g. smtp.mail.me.com / smtp.gmail.com
-      SMTP_PORT: "587"
-      SMTP_USER: ""
-      SMTP_PASS: ""       # Use an app-specific password, not your account password
-
-    # Uncomment and adjust if Actual Budget is on a named Docker network
+    # Uncomment if Actual Budget is on a named Docker network:
     # networks:
-    #   - actual_default
+    #   - your_actual_network
 
 # networks:
-#   actual_default:
+#   your_actual_network:
 #     external: true
