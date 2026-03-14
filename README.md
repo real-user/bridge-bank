@@ -140,6 +140,8 @@ docker compose restart
 | `ACTUAL_SYNC_ID` | Yes | | Sync ID from Actual Budget settings |
 | `ACTUAL_ACCOUNT` | No | `Revolut` | Account name in Actual Budget |
 | `EB_APPLICATION_ID` | Yes | | Enable Banking application ID |
+| `EB_BANK_NAME` | No | Revolut | Bank name |
+| `EB_BANK_COUNTRY` | No | GB | Bank Country Code |
 | `SYNC_INTERVAL_HOURS` | No | `6` | How often to sync |
 | `ACCOUNT_HOLDER_NAME` | No | | Your name as it appears on transfers, comma-separated. Used to correctly identify payees on incoming transfers and refunds. |
 | `NOTIFY_EMAIL` | No | | Email address for session expiry alerts |
