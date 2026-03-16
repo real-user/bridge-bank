@@ -1,7 +1,7 @@
 import logging
 import threading
 from flask import Flask, render_template, request, redirect, url_for, jsonify
-from .. import config, db, licence, sync
+from .. import config, db, license, sync
 
 logger = logging.getLogger(__name__)
 
@@ -25,30 +25,30 @@ COUNTRIES = [
 @app.route("/")
 def index():
     if not config.is_configured():
-        return redirect(url_for("setup_licence"))
+        return redirect(url_for("setup_license"))
     if not config.is_connected():
         return redirect(url_for("connect"))
     return redirect(url_for("status"))
 
 # ---------------------------------------------------------------------------
-# Setup step 1: Licence
+# Setup step 1: License
 # ---------------------------------------------------------------------------
 
 @app.route("/setup", methods=["GET", "POST"])
-def setup_licence():
+def setup_license():
     error = None
     if request.method == "POST":
-        key = request.form.get("licence_key", "").strip()
-        result = licence.activate(key)
+        key = request.form.get("license_key", "").strip()
+        result = license.activate(key)
         if not result["valid"] and not result.get("offline"):
-            error = result["error"] or "Invalid licence key."
+            error = result["error"] or "Invalid license key."
         else:
             config.set("LICENCE_KEY", key)
             return redirect(url_for("setup_actual"))
-    return render_template("setup_licence.html",
+    return render_template("setup_license.html",
         error=error,
-        licence_key=config.LICENCE_KEY,
-        active="licence",
+        license_key=config.LICENCE_KEY,
+        active="license",
     )
 
 # ---------------------------------------------------------------------------
@@ -210,7 +210,7 @@ def callback():
 @app.route("/status")
 def status():
     if not config.is_configured():
-        return redirect(url_for("setup_licence"))
+        return redirect(url_for("setup_license"))
     if not config.is_connected():
         return redirect(url_for("connect"))
 
@@ -219,15 +219,15 @@ def status():
     syncs     = log_data["syncs"]
     days_left = _get_days_left()
     last_sync = db.get_last_sync()
-    act_info  = licence.get_activation_info()
+    act_info  = license.get_activation_info()
 
-    licence_sync_failed = False
-    instance_id = db.get_setting("licence_instance_id")
+    license_sync_failed = False
+    instance_id = db.get_setting("license_instance_id")
     if syncs and not instance_id:
         last = syncs[0]
         msg  = (last.get("message") or "").lower()
-        if last.get("status") == "failure" and "licence" in msg:
-            licence_sync_failed = True
+        if last.get("status") == "failure" and "license" in msg:
+            license_sync_failed = True
 
     return render_template("status.html",
         syncs=syncs,
@@ -240,15 +240,15 @@ def status():
         notify_email=config.NOTIFY_EMAIL,
         activation_usage=act_info["usage"],
         activation_limit=act_info["limit"],
-        licence_sync_failed=licence_sync_failed,
-        licence_limit_reached=(licence_sync_failed and act_info["usage"] >= act_info["limit"] and act_info["limit"] > 0),
+        license_sync_failed=license_sync_failed,
+        license_limit_reached=(license_sync_failed and act_info["usage"] >= act_info["limit"] and act_info["limit"] > 0),
         page=log_data["page"],
         total_pages=log_data["total_pages"],
         active="status",
     )
 
 # ---------------------------------------------------------------------------
-# Licence deactivate
+# License deactivate
 # ---------------------------------------------------------------------------
 
 @app.route("/sync/clear", methods=["POST"])
@@ -257,11 +257,11 @@ def clear_sync_log():
     return redirect(url_for("status"))
 
 @app.route("/settings/deactivate", methods=["POST"])
-def deactivate_licence():
-    result = licence.deactivate()
+def deactivate_license():
+    result = license.deactivate()
     if result["success"]:
         config.set("LICENCE_KEY", "")
-        return redirect(url_for("setup_licence"))
+        return redirect(url_for("setup_license"))
     return redirect(url_for("status"))
 
 # ---------------------------------------------------------------------------

@@ -1,6 +1,6 @@
 import os, json, time, logging, datetime, decimal, requests
 
-from . import config, db, email_notify, licence
+from . import config, db, email_notify, license
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 log = logging.getLogger(__name__)
@@ -108,10 +108,10 @@ def _get_entry_ref(t):
 def run():
     log.info("Starting sync...")
 
-    # Licence check
-    result = licence.validate()
+    # License check
+    result = license.validate()
     if not result["valid"]:
-        msg = f"Licence invalid: {result['error']}"
+        msg = f"License invalid: {result['error']}"
         log.error(msg)
         email_notify.send_failure(msg)
         db.log_sync("failure", message=msg)

@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}Licence — Bridge Bank{% endblock %}
+{% block title %}License — Bridge Bank{% endblock %}
 {% block steps %}
 <div class="steps">
   <div class="step active"></div>
@@ -11,13 +11,13 @@
 {% block content %}
 <div class="card">
   <div class="card-title">Welcome to Bridge Bank</div>
-  <div class="card-sub">Step 1 of 4 — enter your licence key to get started</div>
+  <div class="card-sub">Step 1 of 4 — enter your license key to get started</div>
   {% if error %}
     <div class="alert alert-error">{{ error }}</div>
   {% endif %}
   <form method="POST">
-    <label for="licence_key" style="margin-top:0;">Licence key</label>
-    <input type="text" id="licence_key" name="licence_key" value="{{ licence_key }}" placeholder="XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX" autocomplete="off" autofocus required>
+    <label for="license_key" style="margin-top:0;">License key</label>
+    <input type="text" id="license_key" name="license_key" value="{{ license_key }}" placeholder="XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX" autocomplete="off" autofocus required>
     <div class="field-hint">Don't have one? <a href="https://david-alves.lemonsqueezy.com/checkout/buy/1ad0ec94-d910-45ed-ab11-9464eb116e9d?embed=1" target="_blank">Purchase at bridgebank.app &rarr;</a></div>
     <button class="btn btn-primary" type="submit">Continue &rarr;</button>
   </form>

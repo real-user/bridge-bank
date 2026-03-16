@@ -2,11 +2,11 @@
 {% block title %}Status — Bridge Bank{% endblock %}
 {% block content %}
 
-{% if licence_sync_failed %}
-  {% if licence_limit_reached %}
-    <div class="alert alert-error">Your licence is inactive and syncing has stopped. <a href="https://app.lemonsqueezy.com/my-orders" target="_blank" style="color:inherit;font-weight:600;">Manage your licence &rarr;</a></div>
+{% if license_sync_failed %}
+  {% if license_limit_reached %}
+    <div class="alert alert-error">Your license is inactive and syncing has stopped. <a href="https://app.lemonsqueezy.com/my-orders" target="_blank" style="color:inherit;font-weight:600;">Manage your license &rarr;</a></div>
   {% else %}
-    <div class="alert alert-warn">Your licence is not activated on this machine. <a href="/setup" style="color:inherit;font-weight:600;">Re-enter your licence key &rarr;</a></div>
+    <div class="alert alert-warn">Your license is not activated on this machine. <a href="/setup" style="color:inherit;font-weight:600;">Re-enter your license key &rarr;</a></div>
   {% endif %}
 {% endif %}
 
@@ -88,11 +88,11 @@
 
 <div style="display:flex; justify-content:space-between; align-items:center;">
   {% if activation_usage > 0 %}
-  <form method="POST" action="/settings/deactivate" onsubmit="return confirm('This will deactivate your licence on this machine. You can re-enter your key to reactivate. Continue?');">
-    <button type="submit" class="btn btn-ghost" style="color:#ef4444;font-size:12px;">Deactivate licence ({{ activation_usage }}/{{ activation_limit }} activations used)</button>
+  <form method="POST" action="/settings/deactivate" onsubmit="return confirm('This will deactivate your license on this machine. You can re-enter your key to reactivate. Continue?');">
+    <button type="submit" class="btn btn-ghost" style="color:#ef4444;font-size:12px;">Deactivate license ({{ activation_usage }}/{{ activation_limit }} activations used)</button>
   </form>
   {% else %}
-  <a href="/setup" class="btn btn-ghost" style="font-size:12px;">Enter your licence key</a>
+  <a href="/setup" class="btn btn-ghost" style="font-size:12px;">Enter your license key</a>
   {% endif %}
   <a href="/connect" class="btn btn-ghost">Manage connection</a>
 </div>
