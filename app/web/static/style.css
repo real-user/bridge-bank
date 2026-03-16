@@ -16,7 +16,7 @@ body { background: #080b12; color: #e8edf5; font-family: 'Inter', sans-serif; li
 .step.done { background: #10b981; }
 
 /* Card */
-.card { background: #0f1420; border: 1px solid #1e2a40; border-radius: 12px; padding: 2rem; margin-bottom: 1rem; position: relative; overflow: hidden; }
+.card { background: #0f1420; border: 1px solid #1e2a40; border-radius: 12px; padding: 2rem; margin-bottom: 1rem; position: relative; overflow: visible; }
 .card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 1px; background: linear-gradient(90deg, transparent, #3b82f6, #6366f1, transparent); }
 .card-title { font-size: 18px; font-weight: 800; letter-spacing: -0.5px; margin-bottom: 0.25rem; }
 .card-sub { font-size: 13px; color: #94a3b8; margin-bottom: 1.5rem; }
