@@ -1,7 +1,7 @@
 import logging
 import threading
 from flask import Flask, render_template, request, redirect, url_for, jsonify
-from .. import config, db, license, sync
+from .. import config, db, licence, sync
 
 logger = logging.getLogger(__name__)
 
@@ -39,7 +39,7 @@ def setup_license():
     error = None
     if request.method == "POST":
         key = request.form.get("license_key", "").strip()
-        result = license.activate(key)
+        result = licence.activate(key)
         if not result["valid"] and not result.get("offline"):
             error = result["error"] or "Invalid license key."
         else:
@@ -219,7 +219,7 @@ def status():
     syncs     = log_data["syncs"]
     days_left = _get_days_left()
     last_sync = db.get_last_sync()
-    act_info  = license.get_activation_info()
+    act_info  = licence.get_activation_info()
 
     license_sync_failed = False
     instance_id = db.get_setting("license_instance_id")
@@ -258,7 +258,7 @@ def clear_sync_log():
 
 @app.route("/settings/deactivate", methods=["POST"])
 def deactivate_license():
-    result = license.deactivate()
+    result = licence.deactivate()
     if result["success"]:
         config.set("LICENCE_KEY", "")
         return redirect(url_for("setup_license"))
