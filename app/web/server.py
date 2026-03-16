@@ -44,7 +44,7 @@ def setup_licence():
             error = result["error"] or "Invalid licence key."
         else:
             config.set("LICENCE_KEY", key)
-            return redirect(url_for("setup_bank"))
+            return redirect(url_for("setup_actual"))
     return render_template("setup_licence.html",
         error=error,
         licence_key=config.LICENCE_KEY,
