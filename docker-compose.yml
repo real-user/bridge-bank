@@ -3,6 +3,8 @@ services:
     image: daalves/bridge-bank:latest
     container_name: bridge-bank
     restart: unless-stopped
+    env_file:
+      - .env
     volumes:
       - ./data:/data
     ports:
