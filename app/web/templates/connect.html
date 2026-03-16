@@ -86,7 +86,6 @@ async function loadBanks() {
 }
 
 function filterBanks(query) {
-  if (!allBanks.length) loadBanks();
   const dd = document.getElementById("bank-dropdown");
   if (!query.trim()) { dd.style.display = "none"; return; }
   const q = query.toLowerCase();

@@ -288,7 +288,7 @@ def banks():
     if _banks_cache is None:
         try:
             from .. import enablebanking
-            _banks_cache = enablebanking.get_banks()
+            _banks_cache = enablebanking.get_banks_public()
         except Exception as e:
             logger.error("Failed to fetch banks: %s", e)
             return jsonify([])

@@ -71,3 +71,11 @@ def get_banks() -> list:
         {"name": b["name"], "country": b["country"]}
         for b in r.json().get("aspsps", [])
     ]
+
+def get_banks_public() -> list:
+    r = requests.get("https://api.enablebanking.com/aspsps")
+    r.raise_for_status()
+    return [
+        {"name": b["name"], "country": b["country"]}
+        for b in r.json().get("aspsps", [])
+    ]
