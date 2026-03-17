@@ -4,7 +4,7 @@
 
 {% if license_sync_failed %}
   {% if license_limit_reached %}
-    <div class="alert alert-error">Your license is inactive and syncing has stopped. <a href="https://app.lemonsqueezy.com/my-orders" target="_blank" style="color:inherit;font-weight:600;">Manage your license &rarr;</a></div>
+    <div class="alert alert-error">Your license is inactive and syncing has stopped. <a href="/setup" target="_blank" style="color:inherit;font-weight:600;">Manage your license &rarr;</a></div>
   {% else %}
     <div class="alert alert-warn">Your license is not activated on this machine. <a href="/setup" style="color:inherit;font-weight:600;">Re-enter your license key &rarr;</a></div>
   {% endif %}
