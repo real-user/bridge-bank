@@ -30,6 +30,9 @@ Bridge Bank connects to your EU bank via open banking and imports your transacti
 
 ## Quick start
 
+> **New to self-hosting?** Follow the step-by-step guide at [bridgebank.app/getting-started](https://bridgebank.app/getting-started.html) — it walks you through everything from Enable Banking setup to running your first sync.
+
+
 ### 1. Get your licence key
 
 Purchase at [bridgebank.app](https://bridgebank.app). Your key is delivered to your email instantly.
