@@ -313,12 +313,6 @@ def disconnect():
 # Detect URL helper
 # ---------------------------------------------------------------------------
 
-@app.route("/api/detect-url")
-def detect_url():
-    scheme = request.headers.get("X-Forwarded-Proto", request.scheme)
-    host   = request.headers.get("X-Forwarded-Host", request.host)
-    return jsonify({"url": f"{scheme}://{host}"})
-
 # ---------------------------------------------------------------------------
 # Banks
 # ---------------------------------------------------------------------------
