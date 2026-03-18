@@ -97,6 +97,7 @@ def setup_actual():
         password = request.form.get("actual_password", "").strip()
         sync_id  = request.form.get("actual_sync_id", "").strip()
         account  = request.form.get("actual_account", "").strip()
+        start_date = request.form.get("start_sync_date", "").strip()
         if not url or not password or not sync_id or not account:
             error = "All fields are required."
         else:
@@ -104,6 +105,8 @@ def setup_actual():
             config.set("ACTUAL_PASSWORD", password)
             config.set("ACTUAL_SYNC_ID", sync_id)
             config.set("ACTUAL_ACCOUNT", account)
+            if start_date:
+                config.set("START_SYNC_DATE", start_date)
             return redirect(url_for("setup_notifications"))
     return render_template("setup_actual.html",
         error=error,
@@ -162,6 +165,10 @@ def health():
 # ---------------------------------------------------------------------------
 # Detect URL helper
 # ---------------------------------------------------------------------------
+
+@app.route("/api/bank-status")
+def bank_status():
+    return jsonify({"connected": _get_tokens() is not None})
 
 @app.route("/api/detect-url")
 def detect_url():

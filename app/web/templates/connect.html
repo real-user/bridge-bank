@@ -51,6 +51,13 @@
       <button type="submit" class="btn btn-ghost" style="width:100%;">Cancel</button>
     </form>
     <style>@keyframes spin { to { transform: rotate(360deg); } }</style>
+    <script>
+    var pollTimer = setInterval(function() {
+      fetch('/api/bank-status').then(function(r) { return r.json(); }).then(function(d) {
+        if (d.connected) { clearInterval(pollTimer); window.location.href = '/connect?success=1'; }
+      }).catch(function() {});
+    }, 3000);
+    </script>
   </div>
 
 {% else %}
