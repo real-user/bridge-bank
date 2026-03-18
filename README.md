@@ -54,12 +54,7 @@ mkdir -p ~/bridge-bank/data && cd ~/bridge-bank
 curl -O https://raw.githubusercontent.com/DAdjadj/bridge-bank/main/docker-compose.yml
 ```
 
-**On your local machine**, upload the private key to your server. The filename matches your Enable Banking Application ID (e.g. `aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee.pem`):
-```bash
-scp ~/Downloads/your-app-id.pem user@your-server:~/bridge-bank/data/your-app-id.pem
-```
-
-**Back on your server**, start the container:
+Start the container:
 ```bash
 docker compose up -d
 ```
@@ -75,7 +70,7 @@ The browser-based wizard walks you through four steps:
 1. **License** — enter your key to activate Bridge Bank on this machine
 2. **Actual Budget** — enter your Actual Budget URL, password, Sync ID, account name, and the date to start syncing from
 3. **Notifications** — set your email, SMTP credentials, and daily sync time
-4. **Bank** — connect your bank via Enable Banking OAuth (one-time, browser-based)
+4. **Bank** — upload your Enable Banking `.pem` file (App ID is filled automatically from the filename), then connect your bank via OAuth
 
 Once complete, Bridge Bank runs silently in the background and syncs your transactions every day at the time you chose.
 
