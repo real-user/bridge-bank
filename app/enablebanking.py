@@ -9,26 +9,31 @@ EB_API  = "https://api.enablebanking.com"
 KEY_FILE = "/data/private.pem"
 
 def _get_app_id():
-    """Extract app ID from the key file using JWT decode — same UUID as the filename."""
+    """Extract app ID from config, DB, or .pem filename."""
     import glob, os
-    # Try config first
     if config.EB_APPLICATION_ID:
         return config.EB_APPLICATION_ID
-    # Fall back to reading from the pem files in /data
+    app_id = db.get_setting("eb_app_id")
+    if app_id:
+        return app_id
     for f in glob.glob("/data/*.pem"):
         name = os.path.splitext(os.path.basename(f))[0]
-        if len(name) == 36:  # UUID length
+        if len(name) == 36:
             return name
-    raise RuntimeError("Could not determine Enable Banking App ID. Make sure your .pem file is in /data/")
+    raise RuntimeError("Could not determine Enable Banking App ID. Upload your .pem file in the setup wizard.")
 
 def _make_headers():
     import glob, os
-    key_path = KEY_FILE
-    if not os.path.exists(key_path):
-        for f in glob.glob("/data/*.pem"):
-            key_path = f
-            break
-    key_data = open(key_path, "rb").read()
+    pem_content = db.get_setting("eb_pem_content")
+    if pem_content:
+        key_data = pem_content.encode()
+    else:
+        key_path = KEY_FILE
+        if not os.path.exists(key_path):
+            for f in glob.glob("/data/*.pem"):
+                key_path = f
+                break
+        key_data = open(key_path, "rb").read()
     key = load_pem_private_key(key_data, password=None)
     now = int(time.time())
     payload = {

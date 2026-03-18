@@ -16,10 +16,16 @@
   {% if error %}
     <div class="alert alert-error">{{ error }}</div>
   {% endif %}
-  <form method="POST">
+  <form method="POST" enctype="multipart/form-data">
     <label for="eb_app_id" style="margin-top:0;">Application ID</label>
     <input type="text" id="eb_app_id" name="eb_app_id" value="{{ eb_app_id }}" placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" autocomplete="off" required>
-    <div class="field-hint">From your <a href="https://enablebanking.com/" target="_blank">Enable Banking dashboard</a> under Applications. Your private.pem key file must be placed at <code style="font-size:11px;color:#94a3b8;">/data/private.pem</code>.</div>
+    <div class="field-hint">From your <a href="https://enablebanking.com/" target="_blank">Enable Banking dashboard</a> under Applications.</div>
+    <label for="pem_file" style="margin-top:16px;">Private key file (.pem)</label>
+    {% if pem_uploaded %}
+      <div class="alert" style="background:#f0fdf4;color:#166534;border:1px solid #bbf7d0;margin-bottom:8px;">Private key already uploaded. Upload a new file to replace it.</div>
+    {% endif %}
+    <input type="file" id="pem_file" name="pem_file" accept=".pem" {% if not pem_uploaded %}required{% endif %}>
+    <div class="field-hint">Your private.pem file from the Enable Banking dashboard. It stays on your server and is never shared.</div>
     <label for="eb_psu_type">Account type</label>
     <select id="eb_psu_type" name="eb_psu_type">
       <option value="personal" {% if eb_psu_type == "personal" %}selected{% endif %}>Personal</option>

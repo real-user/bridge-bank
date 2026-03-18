@@ -59,18 +59,29 @@ def setup_license():
 def setup_bank():
     error = None
     if request.method == "POST":
-        app_id   = request.form.get("eb_app_id", "").strip()
-        psu_type = request.form.get("eb_psu_type", "personal").strip()
+        app_id      = request.form.get("eb_app_id", "").strip()
+        psu_type    = request.form.get("eb_psu_type", "personal").strip()
+        pem_file    = request.files.get("pem_file")
+        pem_content = ""
+        if pem_file and pem_file.filename:
+            pem_content = pem_file.read().decode("utf-8", errors="ignore").strip()
+        existing_pem = db.get_setting("eb_pem_content")
         if not app_id:
             error = "Application ID is required."
+        elif not pem_content and not existing_pem:
+            error = "Please upload your private.pem file."
         else:
             config.set("EB_APPLICATION_ID", app_id)
             config.set("EB_PSU_TYPE", psu_type)
+            db.set_setting("eb_app_id", app_id)
+            if pem_content:
+                db.set_setting("eb_pem_content", pem_content)
             return redirect(url_for("setup_actual"))
     return render_template("setup_bank.html",
         error=error,
-        eb_app_id=config.EB_APPLICATION_ID,
+        eb_app_id=config.EB_APPLICATION_ID or db.get_setting("eb_app_id"),
         eb_psu_type=config.EB_PSU_TYPE,
+        pem_uploaded=bool(db.get_setting("eb_pem_content")),
         active="bank",
     )
 
@@ -325,8 +336,12 @@ def banks():
             _banks_cache = enablebanking.get_banks()
         except Exception as e:
             logger.error("Failed to fetch banks: %s", e)
-            return jsonify([])
-    return jsonify(_banks_cache)
+            resp = jsonify([])
+            resp.headers["Access-Control-Allow-Origin"] = "*"
+            return resp
+    resp = jsonify(_banks_cache)
+    resp.headers["Access-Control-Allow-Origin"] = "*"
+    return resp
 
 # ---------------------------------------------------------------------------
 # Helpers
