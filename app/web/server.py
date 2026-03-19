@@ -374,6 +374,27 @@ def reauthorise():
 # OAuth callback
 # ---------------------------------------------------------------------------
 
+def _save_bank_account(session_id, account_uid, valid_until):
+    actual_account  = db.get_setting("pending_actual_account") or config.ACTUAL_ACCOUNT
+    bank_name       = db.get_setting("pending_bank_name") or config.EB_BANK_NAME
+    bank_country    = db.get_setting("pending_bank_country") or config.EB_BANK_COUNTRY
+    start_sync_date = db.get_setting("pending_start_sync_date") or ""
+    db.add_bank_account(
+        session_id=session_id,
+        account_uid=account_uid,
+        bank_name=bank_name,
+        bank_country=bank_country,
+        actual_account=actual_account,
+        session_expiry=valid_until,
+        start_sync_date=start_sync_date,
+    )
+    # Clear pending settings
+    for key in ["pending_actual_account", "pending_bank_name", "pending_bank_country",
+                "pending_start_sync_date", "pending_session_state", "pending_session_valid_until"]:
+        db.set_setting(key, "")
+    _start_scheduler_if_ready()
+    threading.Thread(target=sync.run, daemon=True).start()
+
 @app.route("/callback")
 def callback():
     code  = request.args.get("code", "")
@@ -385,39 +406,43 @@ def callback():
         from .. import enablebanking
         result = enablebanking.complete_auth(code=code, state=state)
         if result:
-            # Retrieve pending info
-            actual_account  = db.get_setting("pending_actual_account") or config.ACTUAL_ACCOUNT
-            bank_name       = db.get_setting("pending_bank_name") or config.EB_BANK_NAME
-            bank_country    = db.get_setting("pending_bank_country") or config.EB_BANK_COUNTRY
-            start_sync_date = db.get_setting("pending_start_sync_date") or ""
-
-            # Save to bank_accounts table
-            db.add_bank_account(
-                session_id=result["session_id"],
-                account_uid=result["account_uid"],
-                bank_name=bank_name,
-                bank_country=bank_country,
-                actual_account=actual_account,
-                session_expiry=result.get("valid_until", ""),
-                start_sync_date=start_sync_date,
-            )
-
-            # Clear pending settings
-            db.set_setting("pending_actual_account", "")
-            db.set_setting("pending_bank_name", "")
-            db.set_setting("pending_bank_country", "")
-            db.set_setting("pending_session_state", "")
-            db.set_setting("pending_session_valid_until", "")
-            db.set_setting("pending_start_sync_date", "")
-
-            _start_scheduler_if_ready()
-            threading.Thread(target=sync.run, daemon=True).start()
-            return redirect(url_for("status"))
+            accounts = result["accounts"]
+            if len(accounts) == 1:
+                account_uid = accounts[0].get("uid") or accounts[0].get("account_uid") or accounts[0].get("resource_id")
+                _save_bank_account(result["session_id"], account_uid, result.get("valid_until", ""))
+                return redirect(url_for("status"))
+            else:
+                import json
+                db.set_setting("pending_auth_session_id", result["session_id"])
+                db.set_setting("pending_auth_accounts", json.dumps(accounts))
+                db.set_setting("pending_auth_valid_until", result.get("valid_until", ""))
+                return redirect(url_for("pick_account"))
         else:
             return redirect(url_for("connect") + "?error=auth_failed")
     except Exception as e:
         logger.error("Callback failed: %s", e)
         return redirect(url_for("connect") + "?error=" + str(e))
+
+@app.route("/pick-account")
+def pick_account():
+    import json
+    accounts_json = db.get_setting("pending_auth_accounts")
+    if not accounts_json:
+        return redirect(url_for("connect"))
+    accounts = json.loads(accounts_json)
+    return render_template("pick_account.html", accounts=accounts, active="connect")
+
+@app.route("/pick-account", methods=["POST"])
+def pick_account_post():
+    account_uid = request.form.get("account_uid")
+    if not account_uid:
+        return redirect(url_for("pick_account"))
+    session_id  = db.get_setting("pending_auth_session_id")
+    valid_until = db.get_setting("pending_auth_valid_until")
+    _save_bank_account(session_id, account_uid, valid_until)
+    for key in ["pending_auth_session_id", "pending_auth_accounts", "pending_auth_valid_until"]:
+        db.set_setting(key, "")
+    return redirect(url_for("status"))
 
 # ---------------------------------------------------------------------------
 # Status

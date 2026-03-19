@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block title %}Choose Account — Bridge Bank{% endblock %}
+{% block steps %}
+<div class="steps">
+  <div class="step done"></div>
+  <div class="step done"></div>
+  <div class="step done"></div>
+  <div class="step done"></div>
+  <div class="step active"></div>
+  <div class="step"></div>
+</div>
+{% endblock %}
+{% block content %}
+<div class="card">
+  <div class="card-title">Choose an account</div>
+  <div class="card-sub">Your bank returned multiple accounts. Select which one to connect.</div>
+  <form method="POST">
+    {% for acct in accounts %}
+    <label style="display:flex; align-items:center; gap:12px; padding:14px 16px; border:1px solid #253450; border-radius:8px; margin-bottom:0.5rem; cursor:pointer; transition: border-color 0.15s;">
+      <input type="radio" name="account_uid" value="{{ acct.uid or acct.account_uid or acct.resource_id }}" {% if loop.first %}checked{% endif %} style="accent-color:#3b82f6;">
+      <div>
+        <div style="font-size:14px; font-weight:600; color:#e8edf5;">
+          {% if acct.iban %}{{ acct.iban[:4] }} •••• {{ acct.iban[-4:] }}{% else %}{{ acct.account_id or acct.uid or 'Account ' ~ loop.index }}{% endif %}
+        </div>
+        {% if acct.owner_name %}<div style="font-size:12px; color:#94a3b8;">{{ acct.owner_name }}</div>{% endif %}
+        {% if acct.currency %}<div style="font-size:11px; color:#4a5568;">{{ acct.currency }}</div>{% endif %}
+      </div>
+    </label>
+    {% endfor %}
+    <button class="btn btn-primary" type="submit">Connect this account &rarr;</button>
+  </form>
+</div>
+{% endblock %}

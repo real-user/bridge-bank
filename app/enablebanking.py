@@ -77,12 +77,10 @@ def complete_auth(code: str, state: str) -> dict:
     accounts   = data.get("accounts", [])
     if not accounts:
         return None
-    chosen      = accounts[0]
-    account_uid = chosen.get("uid") or chosen.get("account_uid") or chosen.get("resource_id")
     valid_until = db.get_setting("pending_session_valid_until")
     return {
         "session_id": session_id,
-        "account_uid": account_uid,
+        "accounts": accounts,
         "valid_until": valid_until,
     }
 
