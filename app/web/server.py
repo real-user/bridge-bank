@@ -437,6 +437,7 @@ def status():
         total_pages=log_data["total_pages"],
         active="status",
         update_mode=db.get_setting("update_mode"),
+        update_available=db.get_setting("update_available") == "1",
         total_tx=total_tx,
         streak=streak,
         fun_message=fun_message,
@@ -556,6 +557,7 @@ def update_run():
             ["sh", "-c", "sleep 2 && cd /compose && docker compose up -d"],
             start_new_session=True
         )
+        db.set_setting("update_available", "0")
         return jsonify({"updating": True})
     except FileNotFoundError:
         return jsonify({"error": "Docker CLI not available in container."}), 400

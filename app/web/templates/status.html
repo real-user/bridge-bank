@@ -113,7 +113,7 @@
 <div class="card">
   <div style="display:flex; justify-content:space-between; align-items:center;">
     <div class="card-title" style="font-size:15px; margin-bottom:0;">Updates</div>
-    <button class="btn btn-ghost" id="update-btn" onclick="runUpdate()" style="font-size:12px;">Check for updates</button>
+    <button class="btn btn-ghost" id="update-btn" onclick="runUpdate()" style="font-size:12px;{% if update_available %}background:linear-gradient(135deg,#3b82f6,#6366f1);color:#fff;border-color:transparent;{% endif %}">{% if update_available %}Update available{% else %}Check for updates{% endif %}</button>
   </div>
   <div id="update-status" style="font-size:12px; color:#94a3b8; margin-top:0.5rem; display:none;"></div>
 </div>
