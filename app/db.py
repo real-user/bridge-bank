@@ -61,7 +61,7 @@ def _ensure_tables(conn):
                 from . import config
                 bank_name = config.EB_BANK_NAME or "Unknown"
                 bank_country = config.EB_BANK_COUNTRY or ""
-                actual_account = config.ACTUAL_ACCOUNT or "Revolut"
+                actual_account = config.ACTUAL_ACCOUNT or "Main"
             except Exception:
                 bank_name = "Unknown"
                 bank_country = ""

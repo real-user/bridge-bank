@@ -6,7 +6,16 @@ from .. import config, db, licence, sync
 logger = logging.getLogger(__name__)
 
 app = Flask(__name__, template_folder="templates", static_folder="static")
-app.secret_key = "bridge-bank-secret"
+def _get_secret_key():
+    stored = db.get_setting("flask_secret_key")
+    if stored:
+        return stored
+    import secrets as _secrets
+    key = _secrets.token_hex(32)
+    db.set_setting("flask_secret_key", key)
+    return key
+
+app.secret_key = _get_secret_key()
 
 CONTAINER_NAME = "bridge-bank"
 IMAGE_NAME = "daalves/bridge-bank:latest"
@@ -68,10 +77,12 @@ def setup_bank():
         pem_content = ""
         if pem_file and pem_file.filename:
             pem_content = pem_file.read().decode("utf-8", errors="ignore").strip()
+            if pem_content and "PRIVATE KEY" not in pem_content:
+                error = "This doesn't look like a valid .pem file. Make sure you upload the private key file from Enable Banking."
         existing_pem = db.get_setting("eb_pem_content")
-        if not app_id:
+        if not error and not app_id:
             error = "Application ID is required."
-        elif not pem_content and not existing_pem:
+        elif not error and not pem_content and not existing_pem:
             error = "Please upload your private.pem file."
         else:
             config.set("EB_APPLICATION_ID", app_id)
@@ -103,11 +114,27 @@ def setup_actual():
         if not url or not password or not sync_id or not account:
             error = "All fields are required."
         else:
-            config.set("ACTUAL_URL", url)
-            config.set("ACTUAL_PASSWORD", password)
-            config.set("ACTUAL_SYNC_ID", sync_id)
-            config.set("ACTUAL_ACCOUNT", account)
-            return redirect(url_for("setup_notifications"))
+            # Validate connection before saving
+            try:
+                from actual import Actual
+                with Actual(base_url=url, password=password, file=sync_id, data_dir="/data/actual-cache"):
+                    pass
+            except ConnectionError:
+                error = f"Could not reach Actual Budget at {url}. Make sure the URL is correct and Actual Budget is running."
+            except Exception as e:
+                err_str = str(e).lower()
+                if "password" in err_str or "auth" in err_str or "401" in err_str:
+                    error = "Wrong password. Check your Actual Budget password and try again."
+                elif "file" in err_str or "sync" in err_str or "not found" in err_str:
+                    error = "Sync ID not found. Open Actual Budget → Settings → Show advanced settings → Sync ID."
+                else:
+                    error = f"Could not connect to Actual Budget: {e}"
+            if not error:
+                config.set("ACTUAL_URL", url)
+                config.set("ACTUAL_PASSWORD", password)
+                config.set("ACTUAL_SYNC_ID", sync_id)
+                config.set("ACTUAL_ACCOUNT", account)
+                return redirect(url_for("setup_notifications"))
     return render_template("setup_actual.html",
         error=error,
         actual_url=config.ACTUAL_URL,
@@ -220,10 +247,13 @@ def connect():
                 error = "Application ID is required."
             else:
                 pem_content = pem_file.read().decode("utf-8", errors="ignore").strip()
-                db.set_setting("eb_pem_content", pem_content)
-                db.set_setting("eb_app_id", app_id)
-                config.set("EB_APPLICATION_ID", app_id)
-                return redirect(url_for("connect"))
+                if "PRIVATE KEY" not in pem_content:
+                    error = "This doesn't look like a valid .pem file. Make sure you upload the private key file from Enable Banking."
+                else:
+                    db.set_setting("eb_pem_content", pem_content)
+                    db.set_setting("eb_app_id", app_id)
+                    config.set("EB_APPLICATION_ID", app_id)
+                    return redirect(url_for("connect"))
 
         elif action == "start":
             bank_name       = request.form.get("bank_name", "").strip()

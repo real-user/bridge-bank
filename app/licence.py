@@ -37,7 +37,10 @@ def activate(key):
             return {"valid": False, "error": msg}
     except requests.RequestException as e:
         logger.warning("License activate failed (network): %s", e)
-        return {"valid": True, "error": None, "offline": True}
+        # Allow offline only if this key was previously activated successfully
+        if db.get_setting("licence_key") == key:
+            return {"valid": True, "error": None, "offline": True}
+        return {"valid": False, "error": "Could not reach the license server. Check your internet connection and try again."}
 
 def deactivate():
     from . import config
@@ -83,7 +86,10 @@ def validate(key=None):
             return {"valid": False, "error": msg}
     except requests.RequestException as e:
         logger.warning("License check failed (network): %s", e)
-        return {"valid": True, "error": None, "offline": True}
+        # Allow offline only if this key was previously validated
+        if db.get_setting("licence_key"):
+            return {"valid": True, "error": None, "offline": True}
+        return {"valid": False, "error": "Could not reach the license server. Check your internet connection."}
 
 def get_activation_info():
     from . import config

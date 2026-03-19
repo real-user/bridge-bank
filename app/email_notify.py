@@ -19,11 +19,16 @@ def _smtp_host_for(email: str) -> str:
         "live.com":       "smtp.office365.com",
         "yahoo.com":      "smtp.mail.yahoo.com",
     }
-    return mapping.get(domain, config.SMTP_HOST or "smtp.gmail.com")
+    host = mapping.get(domain) or config.SMTP_HOST
+    if not host:
+        logger.warning("Could not determine SMTP host for '%s'. Set SMTP_HOST in your .env file or use a supported email provider (Gmail, iCloud, Outlook, Yahoo).", domain)
+        host = f"smtp.{domain}"
+    return host
 
 
 def send(subject: str, body: str):
     if not config.NOTIFY_EMAIL or not config.SMTP_USER or not config.SMTP_PASSWORD:
+        logger.warning("Email not sent (%s) — SMTP credentials not configured. Set up notifications in the Bridge Bank web UI.", subject)
         return
     msg = MIMEText(body)
     msg["Subject"] = subject

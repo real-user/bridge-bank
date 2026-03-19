@@ -20,7 +20,10 @@ def _get_app_id():
         name = os.path.splitext(os.path.basename(f))[0]
         if len(name) == 36:
             return name
-    raise RuntimeError("Could not determine Enable Banking App ID. Upload your .pem file in the setup wizard.")
+    raise RuntimeError(
+        "Enable Banking Application ID not found. Go to the Bank setup page in Bridge Bank and upload your .pem file from Enable Banking. "
+        "The filename should look like 'xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx.pem'."
+    )
 
 def _make_headers():
     import glob, os
@@ -30,9 +33,12 @@ def _make_headers():
     else:
         key_path = KEY_FILE
         if not os.path.exists(key_path):
-            for f in glob.glob("/data/*.pem"):
-                key_path = f
-                break
+            pem_files = glob.glob("/data/*.pem")
+            if not pem_files:
+                raise RuntimeError(
+                    "No .pem file found. Go to the Bank setup page in Bridge Bank and upload your .pem file from Enable Banking."
+                )
+            key_path = pem_files[0]
         key_data = open(key_path, "rb").read()
     key = load_pem_private_key(key_data, password=None)
     now = int(time.time())

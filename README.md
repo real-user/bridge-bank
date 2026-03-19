@@ -69,7 +69,7 @@ Start the container:
 docker compose up -d
 ```
 
-Open **http://your-server-address:3002** in your browser. The setup wizard will guide you through the rest.
+Open **http://your-server-address:3000** in your browser. The setup wizard will guide you through the rest.
 
 ---
 

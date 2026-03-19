@@ -21,9 +21,12 @@ def _make_headers():
     else:
         key_path = "/data/private.pem"
         if not os.path.exists(key_path):
-            for f in glob.glob("/data/*.pem"):
-                key_path = f
-                break
+            pem_files = glob.glob("/data/*.pem")
+            if not pem_files:
+                raise RuntimeError(
+                    "No .pem file found. Go to the Bank setup page in Bridge Bank and upload your .pem file from Enable Banking."
+                )
+            key_path = pem_files[0]
         key_data = open(key_path, "rb").read()
     app_id = db.get_setting("eb_app_id") or config.EB_APPLICATION_ID
     key = load_pem_private_key(key_data, password=None)
@@ -53,7 +56,10 @@ def _get_session(account):
     uid = account.get("account_uid")
     exp = account.get("session_expiry")
     if not sid or not uid:
-        raise RuntimeError("No session found for account %s." % account.get("bank_name", "unknown"))
+        raise RuntimeError(
+            "No active bank session for %s. Open Bridge Bank and click 'Re-authorise bank' on the Bank page."
+            % account.get("bank_name", "unknown")
+        )
     if exp:
         expiry = datetime.datetime.fromisoformat(exp)
         if expiry.tzinfo is None:
@@ -70,7 +76,7 @@ def _fetch_transactions(account_uid, date_from):
     txns    = []
     url     = f"{EB_API}/accounts/{account_uid}/transactions"
     while url:
-        r = requests.get(url, headers=headers, params=params)
+        r = requests.get(url, headers=headers, params=params, timeout=30)
         if not r.ok:
             log.error("Enable Banking error %s: %s", r.status_code, r.text)
             r.raise_for_status()
@@ -140,7 +146,7 @@ def _sync_account(account, state):
         date_from = datetime.date.fromisoformat(last)
     else:
         date_from = datetime.date.today() - datetime.timedelta(days=30)
-        log.info("First run for %s: fetching last 30 days", bank_label)
+        log.warning("No start date configured for %s — defaulting to last 30 days. To change this, set a start date in the Bank page.", bank_label)
 
     pending_map = acct_state.get("pending_map", {})
     if pending_map:
@@ -152,9 +158,11 @@ def _sync_account(account, state):
         raw = _fetch_transactions(account_uid, date_from)
     except requests.HTTPError as e:
         if e.response is not None and e.response.status_code == 429:
-            msg = f"{bank_label}: Rate limited by the bank. Try again later."
+            msg = f"{bank_label}: Your bank is rate-limiting requests. Bridge Bank will retry on the next scheduled sync."
+        elif e.response is not None and e.response.status_code in (401, 403):
+            msg = f"{bank_label}: Your bank session has expired. Open Bridge Bank and click 'Re-authorise bank' on the Bank page."
         else:
-            msg = f"{bank_label}: Enable Banking returned an error. Your session may have expired."
+            msg = f"{bank_label}: Could not fetch transactions from your bank. Open Bridge Bank and click 'Re-authorise bank' on the Bank page."
         log.error(msg)
         return False, 0, msg
 
@@ -251,7 +259,7 @@ def _sync_account(account, state):
             log.info("Done %s: %d added, %d confirmed, %d skipped", bank_label, added, updated, skipped)
 
     except Exception as e:
-        msg = f"{bank_label}: Could not connect to Actual Budget. Check your URL and password."
+        msg = f"{bank_label}: Could not connect to Actual Budget. Make sure Actual Budget is running and reachable at {config.ACTUAL_URL}."
         log.error(msg)
         return False, 0, msg
 
