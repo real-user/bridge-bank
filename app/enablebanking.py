@@ -75,6 +75,18 @@ def complete_auth(code: str, state: str) -> dict:
     data       = r.json()
     session_id = data["session_id"]
     accounts   = data.get("accounts", [])
+    logger.info("Enable Banking session response returned %d account(s): %s", len(accounts), accounts)
+    # The session response may only include a subset of consented accounts.
+    # Fetch the full list from the dedicated accounts endpoint.
+    try:
+        acct_resp = requests.get(f"{EB_API}/sessions/{session_id}/accounts", headers=_make_headers())
+        acct_resp.raise_for_status()
+        full_accounts = acct_resp.json().get("accounts", [])
+        if len(full_accounts) > len(accounts):
+            logger.info("Accounts endpoint returned %d account(s): %s", len(full_accounts), full_accounts)
+            accounts = full_accounts
+    except Exception as e:
+        logger.warning("Could not fetch full account list: %s", e)
     if not accounts:
         return None
     valid_until = db.get_setting("pending_session_valid_until")
