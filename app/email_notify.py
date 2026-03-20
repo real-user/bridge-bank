@@ -26,24 +26,29 @@ def _smtp_host_for(email: str) -> str:
     return host
 
 
-def send(subject: str, body: str):
+def send(subject: str, body: str, raise_on_error: bool = False):
     if not config.NOTIFY_EMAIL or not config.SMTP_USER or not config.SMTP_PASSWORD:
-        logger.warning("Email not sent (%s) — SMTP credentials not configured. Set up notifications in the Bridge Bank web UI.", subject)
+        msg = "SMTP credentials not configured. Set up notifications in the Bridge Bank web UI."
+        if raise_on_error:
+            raise RuntimeError(msg)
+        logger.warning("Email not sent (%s) — %s", subject, msg)
         return
-    msg = MIMEText(body)
-    msg["Subject"] = subject
-    msg["From"]    = config.SMTP_USER
-    msg["To"]      = config.NOTIFY_EMAIL
+    mime = MIMEText(body)
+    mime["Subject"] = subject
+    mime["From"]    = config.SMTP_USER
+    mime["To"]      = config.NOTIFY_EMAIL
     try:
         host = _smtp_host_for(config.SMTP_USER)
         port = int(config.SMTP_PORT or 587)
         with smtplib.SMTP(host, port) as s:
             s.starttls()
             s.login(config.SMTP_USER, config.SMTP_PASSWORD)
-            s.sendmail(config.SMTP_USER, config.NOTIFY_EMAIL, msg.as_string())
+            s.sendmail(config.SMTP_USER, config.NOTIFY_EMAIL, mime.as_string())
         logger.info("Email sent: %s", subject)
     except Exception as e:
         logger.warning("Failed to send email: %s", e)
+        if raise_on_error:
+            raise
 
 
 def send_success(tx_count: int):

@@ -180,7 +180,7 @@ def setup_notifications():
 def test_email():
     try:
         from .. import email_notify
-        email_notify.send("Bridge Bank: test email", "This is a test email from Bridge Bank. If you're reading this, your email notifications are working correctly.")
+        email_notify.send("Bridge Bank: test email", "This is a test email from Bridge Bank. If you're reading this, your email notifications are working correctly.", raise_on_error=True)
         return jsonify({"ok": True})
     except Exception as e:
         return jsonify({"error": str(e)}), 500
@@ -235,6 +235,20 @@ def detect_url():
 def last_sync_api():
     return jsonify({"ran_at": db.get_last_sync() or ""})
 
+@app.route("/api/actual-accounts")
+def actual_accounts_api():
+    """List account names from Actual Budget for validation/autocomplete."""
+    try:
+        from actual import Actual
+        from actual.queries import get_accounts
+        with Actual(base_url=config.ACTUAL_URL, password=config.ACTUAL_PASSWORD,
+                    file=config.ACTUAL_SYNC_ID, data_dir="/data/actual-cache") as actual:
+            accounts = get_accounts(actual.session)
+            return jsonify([a.name for a in accounts])
+    except Exception as e:
+        logger.error("Failed to list Actual accounts: %s", e)
+        return jsonify([])
+
 # ---------------------------------------------------------------------------
 # Connect (bank OAuth)
 # ---------------------------------------------------------------------------
@@ -274,18 +288,37 @@ def connect():
             elif not actual_account:
                 error = "Please enter the Actual Budget account name."
             else:
-                config.set("EB_BANK_NAME", bank_name)
-                config.set("EB_BANK_COUNTRY", bank_country)
-                db.set_setting("pending_actual_account", actual_account)
-                db.set_setting("pending_bank_name", bank_name)
-                db.set_setting("pending_bank_country", bank_country)
-                db.set_setting("pending_start_sync_date", start_sync_date)
+                # Validate that the account exists in Actual Budget
                 try:
-                    from .. import enablebanking
-                    result   = enablebanking.start_auth(bank_name, bank_country)
-                    auth_url = result["url"]
+                    from actual import Actual
+                    from actual.queries import get_accounts
+                    with Actual(base_url=config.ACTUAL_URL, password=config.ACTUAL_PASSWORD,
+                                file=config.ACTUAL_SYNC_ID, data_dir="/data/actual-cache") as actual:
+                        actual_names = [a.name for a in get_accounts(actual.session)]
+                    if actual_account not in actual_names:
+                        close_matches = [n for n in actual_names if actual_account.lower() in n.lower() or n.lower() in actual_account.lower()]
+                        hint = f" Did you mean: {', '.join(close_matches)}?" if close_matches else f" Available accounts: {', '.join(actual_names)}." if actual_names else ""
+                        error = f"Account \"{actual_account}\" not found in Actual Budget.{hint}"
                 except Exception as e:
-                    error = f"Could not start bank connection: {e}"
+                    logger.warning("Could not validate Actual account: %s", e)
+                if not error:
+                    config.set("EB_BANK_NAME", bank_name)
+                    config.set("EB_BANK_COUNTRY", bank_country)
+                    db.set_setting("pending_actual_account", actual_account)
+                    db.set_setting("pending_bank_name", bank_name)
+                    db.set_setting("pending_bank_country", bank_country)
+                    db.set_setting("pending_start_sync_date", start_sync_date)
+                    try:
+                        # Update BRIDGE_BANK_URL from current request so the OAuth
+                        # callback redirects back through the same scheme (HTTPS via Caddy)
+                        scheme = request.headers.get("X-Forwarded-Proto", request.scheme)
+                        host   = request.headers.get("X-Forwarded-Host", request.host)
+                        config.set("BRIDGE_BANK_URL", f"{scheme}://{host}")
+                        from .. import enablebanking
+                        result   = enablebanking.start_auth(bank_name, bank_country)
+                        auth_url = result["url"]
+                    except Exception as e:
+                        error = f"Could not start bank connection: {e}"
 
         elif action == "cancel":
             db.set_setting("pending_session_id", "")
