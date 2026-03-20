@@ -772,6 +772,7 @@ def update_check():
 
 @app.route("/update/run", methods=["POST"])
 def update_run():
+    # Try Watchtower first (new setup), fall back to helper container (old setup)
     import requests as _requests
     try:
         resp = _requests.get(
@@ -783,10 +784,41 @@ def update_run():
         if resp.status_code == 200:
             db.set_setting("update_available", "0")
             return jsonify({"updating": True})
-        return jsonify({"error": "Update service returned an error. Try running: docker compose pull && docker compose up -d"}), 500
+    except Exception:
+        logger.info("Watchtower not available, falling back to helper container")
+    # Fallback: pull image and spawn a helper container to run docker compose
+    import subprocess, os, json as _json
+    if not os.path.exists("/var/run/docker.sock"):
+        return jsonify({"error": "Docker socket not mounted."}), 400
+    try:
+        subprocess.run(["docker", "pull", IMAGE_NAME], capture_output=True, text=True, timeout=120)
+        mounts_json = subprocess.run(
+            ["docker", "inspect", "--format", "{{json .Mounts}}", CONTAINER_NAME],
+            capture_output=True, text=True, timeout=5
+        ).stdout.strip()
+        compose_host_path = ""
+        for m in _json.loads(mounts_json or "[]"):
+            if m.get("Destination") == "/compose":
+                compose_host_path = m["Source"]
+                break
+        if not compose_host_path:
+            return jsonify({"error": "Could not update. Try running: docker compose pull && docker compose up -d"}), 400
+        compose_file = f"{compose_host_path}/docker-compose.yml"
+        result = subprocess.run([
+            "docker", "run", "-d", "--rm",
+            "-v", "/var/run/docker.sock:/var/run/docker.sock",
+            "-v", f"{compose_host_path}:{compose_host_path}:ro",
+            IMAGE_NAME, "sh", "-c",
+            f"sleep 2 && docker compose -f '{compose_file}' up -d --force-recreate",
+        ], capture_output=True, text=True, timeout=15)
+        if result.returncode != 0:
+            logger.error("Failed to start update helper: %s", result.stderr.strip())
+            return jsonify({"error": "Failed to start update. Try running: docker compose pull && docker compose up -d"}), 500
+        db.set_setting("update_available", "0")
+        return jsonify({"updating": True})
     except Exception as e:
-        logger.error("Failed to trigger update: %s", e)
-        return jsonify({"error": "Update service not available. Try running: docker compose pull && docker compose up -d"}), 500
+        logger.error("Fallback update failed: %s", e)
+        return jsonify({"error": str(e)}), 500
 
 _banks_cache = None
 
