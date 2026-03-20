@@ -764,10 +764,33 @@ def update_run():
         if image_is_same and container_current:
             return jsonify({"up_to_date": True})
         logger.info("Recreating container (new_image=%s, container_outdated=%s)", not image_is_same, not container_current)
-        subprocess.Popen(
-            ["sh", "-c", "sleep 2 && cd /compose && docker compose up -d"],
-            start_new_session=True
-        )
+        # docker compose up -d can't work from inside the container because it
+        # can't stop itself. Read mount/port config from the running container
+        # and recreate with docker run.
+        import json as _json
+        mounts_json = subprocess.run(
+            ["docker", "inspect", "--format", "{{json .Mounts}}", CONTAINER_NAME],
+            capture_output=True, text=True, timeout=5
+        ).stdout.strip()
+        ports_json = subprocess.run(
+            ["docker", "inspect", "--format", "{{json .HostConfig.PortBindings}}", CONTAINER_NAME],
+            capture_output=True, text=True, timeout=5
+        ).stdout.strip()
+        vol_args = []
+        for m in _json.loads(mounts_json or "[]"):
+            ro = ":ro" if not m.get("RW", True) else ""
+            vol_args += ["-v", f"{m['Source']}:{m['Destination']}{ro}"]
+        port_args = []
+        for container_port, bindings in _json.loads(ports_json or "{}").items():
+            for b in (bindings or []):
+                host_port = b.get("HostPort", "")
+                if host_port:
+                    port_args += ["-p", f"{host_port}:{container_port.split('/')[0]}"]
+        run_parts = ["docker", "run", "-d", "--name", CONTAINER_NAME, "--restart", "unless-stopped"] + port_args + vol_args + [IMAGE_NAME]
+        run_cmd = " ".join(run_parts)
+        full_cmd = f"sleep 2 && docker stop {CONTAINER_NAME} && docker rm {CONTAINER_NAME} && {run_cmd}"
+        logger.info("Update command: %s", full_cmd)
+        subprocess.Popen(["sh", "-c", full_cmd], start_new_session=True)
         db.set_setting("update_available", "0")
         return jsonify({"updating": True})
     except FileNotFoundError:
