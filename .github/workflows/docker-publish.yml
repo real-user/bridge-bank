@@ -21,11 +21,16 @@ jobs:
         id: version
         run: |
           VERSION=$(date -u +%Y.%m.%d)
-          # Check if this version tag already exists, add suffix if so
+          # Count existing tags for today and increment
           EXISTING=$(git tag -l "v${VERSION}*" | wc -l)
           if [ "$EXISTING" -gt "0" ]; then
             VERSION="${VERSION}.$((EXISTING + 1))"
           fi
+          # Make sure the tag doesn't already exist
+          while git tag -l "v${VERSION}" | grep -q .; do
+            EXISTING=$((EXISTING + 1))
+            VERSION="$(date -u +%Y.%m.%d).${EXISTING}"
+          done
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
 
       - name: Set up QEMU
@@ -46,6 +51,8 @@ jobs:
           context: .
           platforms: linux/amd64,linux/arm64,linux/arm/v7
           push: true
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
           tags: |
             daalves/bridge-bank:latest
             daalves/bridge-bank:${{ steps.version.outputs.version }}
