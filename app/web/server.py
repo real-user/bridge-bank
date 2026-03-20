@@ -746,9 +746,9 @@ def update_check():
         tag = IMAGE_NAME.split(":")[1] if ":" in IMAGE_NAME else "latest"
         token_resp = _req.get(f"https://auth.docker.io/token?service=registry.docker.io&scope=repository:{repo}:pull", timeout=5)
         token = token_resp.json().get("token", "")
-        # Get the manifest list to find the platform-specific digest,
-        # which matches what docker stores in RepoDigests after a pull.
-        manifest_resp = _req.get(
+        # HEAD request for the manifest list digest — this matches what
+        # docker stores in RepoDigests after pulling a multi-arch image.
+        manifest_resp = _req.head(
             f"https://registry-1.docker.io/v2/{repo}/manifests/{tag}",
             headers={
                 "Authorization": f"Bearer {token}",
@@ -756,20 +756,7 @@ def update_check():
             },
             timeout=5
         )
-        remote_digest = ""
-        manifest_data = manifest_resp.json()
-        import platform
-        arch = platform.machine()
-        arch_map = {"x86_64": "amd64", "aarch64": "arm64", "armv7l": "arm"}
-        target_arch = arch_map.get(arch, arch)
-        for m in manifest_data.get("manifests", []):
-            p = m.get("platform", {})
-            if p.get("architecture") == target_arch and p.get("os") == "linux":
-                remote_digest = m.get("digest", "")
-                break
-        if not remote_digest:
-            # Single-arch image, use the digest from the response header
-            remote_digest = manifest_resp.headers.get("Docker-Content-Digest", "")
+        remote_digest = manifest_resp.headers.get("Docker-Content-Digest", "")
         local_digest = subprocess.run(
             ["docker", "inspect", "--format", "{{index .RepoDigests 0}}", IMAGE_NAME],
             capture_output=True, text=True, timeout=10
