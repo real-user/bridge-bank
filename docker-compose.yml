@@ -16,7 +16,7 @@ services:
     restart: unless-stopped
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
-    command: --cleanup --interval 86400 --http-api-update bridge-bank
+    command: --cleanup --interval 86400 --http-api-update --http-api-periodic-polls bridge-bank
     environment:
       - WATCHTOWER_LOG_LEVEL=warn
       - WATCHTOWER_HTTP_API_TOKEN=bridge-bank-update
