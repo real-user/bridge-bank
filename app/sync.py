@@ -285,7 +285,15 @@ def run():
     if not result["valid"]:
         msg = f"License invalid: {result['error']}"
         log.error(msg)
-        email_notify.send_failure(msg)
+        # Send specific trial expired email if applicable
+        try:
+            act_info = licence.get_activation_info()
+            if act_info.get("is_trial"):
+                email_notify.send_trial_expired()
+            else:
+                email_notify.send_failure(msg)
+        except Exception:
+            email_notify.send_failure(msg)
         db.log_sync("failure", message=msg)
         return False, 0, msg
 
