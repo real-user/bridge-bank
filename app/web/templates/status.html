@@ -11,18 +11,6 @@
 {% endblock %}
 {% block content %}
 
-{% if is_trial and trial_expires_at %}
-  <div class="alert alert-warn">You are on a free trial — expires {{ trial_expires_at }}. <a href="https://buy.stripe.com/aFabIU2ce8ntbuDeYVcMM03" target="_blank" style="color:inherit;font-weight:600;">Purchase a licence &rarr;</a></div>
-{% endif %}
-
-{% if license_sync_failed %}
-  {% if license_limit_reached %}
-    <div class="alert alert-error">Your license is inactive and syncing has stopped. <a href="/setup" target="_blank" style="color:inherit;font-weight:600;">Manage your license &rarr;</a></div>
-  {% else %}
-    <div class="alert alert-warn">Your license is not activated on this machine. <a href="/setup" style="color:inherit;font-weight:600;">Re-enter your license key &rarr;</a></div>
-  {% endif %}
-{% endif %}
-
 {% if days_left is not none and days_left <= 14 %}
   <div class="alert alert-warn">A bank connection expires in {{ days_left }} day{{ 's' if days_left != 1 else '' }}. <a href="/connect" style="color:inherit;font-weight:600;">Manage banks &rarr;</a></div>
 {% endif %}
@@ -190,11 +178,6 @@
 <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
   <button class="btn btn-ghost" id="update-btn" onclick="runUpdate()" style="font-size:12px;{% if update_available %}background:#10b981;color:#fff;border-color:transparent;{% endif %}">{% if update_available %}Update available{% else %}Check for updates{% endif %}</button>
   <button class="btn btn-ghost" id="download-logs-btn" onclick="downloadLogs()" style="font-size:12px;">Download logs</button>
-  {% if activation_usage > 0 %}
-  <form method="POST" action="/settings/deactivate" onsubmit="return confirm('This will deactivate your license on this machine. You can re-enter your key to reactivate. Continue?');" style="margin:0;">
-    <button type="submit" class="btn btn-ghost" style="color:#ef4444;font-size:12px;">Deactivate license ({{ activation_usage }}/{{ activation_limit }})</button>
-  </form>
-  {% endif %}
 </div>
 <a href="/connect" style="display:block;text-align:center;margin-top:8px;background:linear-gradient(135deg,#3b82f6,#6366f1);color:#fff;border-radius:8px;padding:12px;font-size:14px;font-weight:600;text-decoration:none;">&larr; Manage banks</a>
 <div id="update-status" style="font-size:12px; color:#94a3b8; margin-top:0.5rem; display:none;"></div>
