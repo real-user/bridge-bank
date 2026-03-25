@@ -56,22 +56,22 @@ def start_auth(bank_name: str, bank_country: str, psu_type: str = "") -> dict:
     body = {
         "access":       {"valid_until": valid_until},
         "aspsp":        {"name": bank_name, "country": bank_country},
-        "state":        f"bridge-bank-auth|{config.BRIDGE_BANK_URL or "http://localhost:3002"}|{state_val}",
-        "redirect_url": "https://bridgebank.app/callback",
+        "state":        state_val,
+        "redirect_url": f"{config.BRIDGE_BANK_URL or 'http://localhost:3002'}/callback",
         "psu_type":     psu_type or config.EB_PSU_TYPE,
     }
     db.set_setting("pending_session_state", state_val)
     db.set_setting("pending_session_valid_until", valid_until)
-    logger.info("Starting auth for %s (%s) with psu_type=%s", bank_name, bank_country, body["psu_type"])
+    logger.info("Starting auth for %s (%s) with psu_type=%s redirect_url=%s", bank_name, bank_country, body["psu_type"], body["redirect_url"])
     r = requests.post(f"{EB_API}/auth", json=body, headers=_make_headers())
+    if not r.ok:
+        logger.error("Enable Banking /auth failed: %s %s", r.status_code, r.text)
     r.raise_for_status()
     return {"url": r.json()["url"]}
 
 def complete_auth(code: str, state: str) -> dict:
     """Complete OAuth flow. Returns dict with session_id, account_uid, valid_until or None on failure."""
-    # Strip embedded BRIDGE_BANK_URL from state before sending to Enable Banking
-    clean_state = state.split("|")[-1] if "|" in state else state
-    r = requests.post(f"{EB_API}/sessions", json={"code": code, "state": clean_state}, headers=_make_headers())
+    r = requests.post(f"{EB_API}/sessions", json={"code": code, "state": state}, headers=_make_headers())
     r.raise_for_status()
     data       = r.json()
     session_id = data["session_id"]
