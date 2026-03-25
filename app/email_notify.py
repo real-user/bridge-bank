@@ -93,20 +93,6 @@ def send_partial(successes: list, errors: list):
     send("Bridge Bank: sync partially complete", body)
 
 
-def send_trial_expiry_warning(days_left: int):
-    send(
-        f"Bridge Bank: trial expires in {days_left} day{'s' if days_left != 1 else ''}",
-        f"Your Bridge Bank free trial expires in {days_left} day{'s' if days_left != 1 else ''}.\n\nPurchase a licence at https://bridgebank.app to keep syncing your transactions."
-    )
-
-
-def send_trial_expired():
-    send(
-        "Bridge Bank: trial expired",
-        f"Your Bridge Bank free trial has expired. Syncing is paused until a licence is activated.\n\nPurchase a licence at https://bridgebank.app to resume syncing your transactions."
-    )
-
-
 def send_session_expiry_warning(days_left: int):
     send(
         f"Bridge Bank: bank session expires in {days_left} days",
