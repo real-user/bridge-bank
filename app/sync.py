@@ -1,6 +1,6 @@
 import os, json, time, logging, datetime, decimal, requests
 
-from . import config, db, email_notify, licence
+from . import config, db, email_notify
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 log = logging.getLogger(__name__)
@@ -337,35 +337,6 @@ def _sync_account(account, state):
 
 def run():
     log.info("Starting sync...")
-
-    # License check
-    result = licence.validate()
-    if not result["valid"]:
-        msg = f"License invalid: {result['error']}"
-        log.error(msg)
-        # Send specific trial expired email if applicable
-        try:
-            act_info = licence.get_activation_info()
-            if act_info.get("is_trial"):
-                email_notify.send_trial_expired()
-            else:
-                email_notify.send_failure(msg)
-        except Exception:
-            email_notify.send_failure(msg)
-        db.log_sync("failure", message=msg)
-        return False, 0, msg
-
-    # Trial expiry warning
-    try:
-        act_info = licence.get_activation_info()
-        if act_info.get("is_trial") and act_info.get("expires_at"):
-            expires = datetime.date.fromisoformat(act_info["expires_at"][:10])
-            days_left = (expires - datetime.date.today()).days
-            if 0 < days_left <= 7:
-                log.warning("Trial expires in %d days", days_left)
-                email_notify.send_trial_expiry_warning(days_left)
-    except Exception:
-        pass
 
     all_accounts = db.get_all_bank_accounts()
     if not all_accounts:
