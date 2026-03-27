@@ -123,6 +123,62 @@ def _parse_notes(t):
 def _get_entry_ref(t):
     return t.get("entry_reference") or t.get("transaction_id") or ""
 
+def _patch_payee_name_rules(session):
+    """Remap 'payee_name' to 'description' in rule actions so actualpy can process them.
+
+    Actual Budget uses 'payee_name' for set-payee actions, but actualpy only
+    accepts 'description' (which it maps to payee_id internally). Without this
+    patch, run_rules() raises a Pydantic validation error and no rules apply."""
+    import json
+    from actual.queries import get_rules
+    field_map = {"payee_name": "description", "imported_payee": "imported_description"}
+    for rule in get_rules(session):
+        for attr in ("conditions", "actions"):
+            raw = getattr(rule, attr, None)
+            if not raw:
+                continue
+            try:
+                items = json.loads(raw)
+            except (json.JSONDecodeError, TypeError):
+                continue
+            patched = False
+            for item in items:
+                old = item.get("field")
+                if old in field_map:
+                    item["field"] = field_map[old]
+                    patched = True
+            if patched:
+                setattr(rule, attr, json.dumps(items))
+
+def _fix_rule_note_casing(session, transactions):
+    """Restore original case for notes set by rules.
+
+    actualpy lowercases all string values via get_normalized_string(), including
+    SET action values for notes. This compares each transaction's notes against
+    the lowercased rule value and restores the original case if they match."""
+    import json, unicodedata
+    from actual.queries import get_rules
+    note_rules = []
+    for rule in get_rules(session):
+        try:
+            actions = json.loads(rule.actions)
+        except (json.JSONDecodeError, TypeError):
+            continue
+        for action in actions:
+            if action.get("field") == "notes" and action.get("op") == "set" and action.get("value"):
+                original = action["value"]
+                lowered = unicodedata.normalize("NFD", original.lower())
+                note_rules.append((lowered, original))
+    if not note_rules:
+        return
+    for txn in transactions:
+        if not txn.notes:
+            continue
+        for lowered, original in note_rules:
+            if txn.notes == lowered:
+                txn.notes = original
+                break
+
 def _sync_account(account, state):
     """Sync a single bank account. Returns (success, tx_count, message)."""
     account_id = str(account["id"])
@@ -259,7 +315,9 @@ def _sync_account(account, state):
                     log.warning("Skipping transaction: %s | %s", e, txn)
 
             try:
+                _patch_payee_name_rules(actual.session)
                 actual.run_rules(new_txn)
+                _fix_rule_note_casing(actual.session, new_txn)
             except Exception as e:
                 log.error("Error applying rules: %s", e)
 

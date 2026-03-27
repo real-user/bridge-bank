@@ -65,3 +65,25 @@ jobs:
           git config user.email "github-actions@github.com"
           git tag "v${{ steps.version.outputs.version }}"
           git push origin "v${{ steps.version.outputs.version }}"
+
+      - name: Deploy to server
+        if: github.ref == 'refs/heads/main'
+        run: |
+          # Install cloudflared
+          curl -fsSL https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64 -o /usr/local/bin/cloudflared
+          chmod +x /usr/local/bin/cloudflared
+
+          # Set up SSH key
+          mkdir -p ~/.ssh
+          echo "${{ secrets.DEPLOY_SSH_KEY }}" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+
+          # SSH through Cloudflare Tunnel
+          ssh -o StrictHostKeyChecking=no \
+              -o ProxyCommand="cloudflared access ssh --hostname ssh-deploy.david-alves.com" \
+              -i ~/.ssh/deploy_key \
+              ${{ secrets.DEPLOY_SSH_USER }}@ssh-deploy.david-alves.com \
+              "docker pull daalves/bridge-bank:latest && docker compose -f /opt/docker/bridge-bank/docker-compose.yml up -d bridge-bank"
+
+          # Clean up
+          rm -f ~/.ssh/deploy_key

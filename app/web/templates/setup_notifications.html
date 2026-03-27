@@ -70,7 +70,9 @@ async function sendTestEmail() {
       body: JSON.stringify({
         notify_email: document.getElementById('notify_email').value,
         smtp_user: document.getElementById('smtp_user').value,
-        smtp_password: document.getElementById('smtp_password').value
+        smtp_password: document.getElementById('smtp_password').value,
+        smtp_from: document.getElementById('smtp_from').value,
+        smtp_host: document.getElementById('smtp_host').value
       })
     });
     var data = await res.json();
