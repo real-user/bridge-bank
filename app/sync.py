@@ -76,10 +76,24 @@ def _fetch_transactions(account_uid, date_from):
     txns    = []
     url     = f"{EB_API}/accounts/{account_uid}/transactions"
     while url:
-        r = requests.get(url, headers=headers, params=params, timeout=30)
-        if not r.ok:
-            log.error("Enable Banking error %s: %s", r.status_code, r.text)
-            r.raise_for_status()
+        last_err = None
+        for attempt in range(3):
+            r = requests.get(url, headers=headers, params=params, timeout=30)
+            if r.ok:
+                last_err = None
+                break
+            last_err = r
+            is_aspsp = "ASPSP_ERROR" in (r.text or "")
+            if r.status_code == 400 and is_aspsp and attempt < 2:
+                delay = 2 ** attempt
+                log.warning("ASPSP temporarily unavailable (attempt %d/3), retrying in %ds…", attempt + 1, delay)
+                time.sleep(delay)
+                headers = _make_headers()
+                continue
+            break
+        if last_err is not None:
+            log.error("Enable Banking error %s: %s", last_err.status_code, last_err.text)
+            last_err.raise_for_status()
         data = r.json()
         txns.extend(data.get("transactions", []))
         ck  = data.get("continuation_key")
